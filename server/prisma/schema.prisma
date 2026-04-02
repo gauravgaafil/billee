@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  userType     String   @default("FREELANCER") // BUSINESS, FREELANCER, INFLUENCER
+  businessName String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  zip          String?
+  country      String?
+  logo         String?
+  taxId        String?
+  currency     String   @default("USD")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clients           Client[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  recurringInvoices RecurringInvoice[]
+  projects          Project[]
+  timeEntries       TimeEntry[]
+  campaigns         Campaign[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  country   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
+  projects          Project[]
+  campaigns         Campaign[]
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  userId        String
+  clientId      String
+  invoiceNumber String
+  status        String   @default("DRAFT") // DRAFT, SENT, PAID, OVERDUE, CANCELLED
+  issueDate     DateTime @default(now())
+  dueDate       DateTime
+  subtotal      Float    @default(0)
+  taxRate       Float    @default(0)
+  taxAmount     Float    @default(0)
+  discount      Float    @default(0)
+  total         Float    @default(0)
+  notes         String?
+  currency      String   @default("USD")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items  InvoiceItem[]
+
+  @@unique([userId, invoiceNumber])
+}
+
+model InvoiceItem {
+  id          String @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float  @default(1)
+  unitPrice   Float
+  amount      Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id             String   @id @default(cuid())
+  userId         String
+  category       String
+  description    String
+  amount         Float
+  date           DateTime
+  receiptUrl     String?
+  taxDeductible  Boolean  @default(false)
+  vendor         String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecurringInvoice {
+  id           String   @id @default(cuid())
+  userId       String
+  clientId     String
+  frequency    String   // WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
+  nextDate     DateTime
+  templateData String   // JSON string of invoice template
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// Freelancer-specific
+model Project {
+  id          String    @id @default(cuid())
+  userId      String
+  clientId    String?
+  name        String
+  description String?
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED, ON_HOLD, CANCELLED
+  budget      Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client      Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  timeEntries TimeEntry[]
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  projectId   String
+  description String?
+  hours       Float
+  date        DateTime
+  hourlyRate  Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// Influencer-specific
+model Campaign {
+  id           String    @id @default(cuid())
+  userId       String
+  clientId     String?
+  name         String
+  platform     String    // INSTAGRAM, YOUTUBE, TIKTOK, TWITTER, OTHER
+  deliverables String?
+  fee          Float
+  status       String    @default("PENDING") // PENDING, ACTIVE, COMPLETED, CANCELLED
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
