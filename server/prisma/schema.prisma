@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -47,7 +47,7 @@ model Client {
   state     String?
   zip       String?
   country   String?
-  notes     String?
+  notes     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -56,6 +56,8 @@ model Client {
   recurringInvoices RecurringInvoice[]
   projects          Project[]
   campaigns         Campaign[]
+
+  @@index([userId])
 }
 
 model Invoice {
@@ -71,7 +73,7 @@ model Invoice {
   taxAmount     Float    @default(0)
   discount      Float    @default(0)
   total         Float    @default(0)
-  notes         String?
+  notes         String?  @db.Text
   currency      String   @default("USD")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -81,6 +83,8 @@ model Invoice {
   items  InvoiceItem[]
 
   @@unique([userId, invoiceNumber])
+  @@index([userId])
+  @@index([clientId])
 }
 
 model InvoiceItem {
@@ -104,11 +108,13 @@ model Expense {
   receiptUrl     String?
   taxDeductible  Boolean  @default(false)
   vendor         String?
-  notes          String?
+  notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RecurringInvoice {
@@ -117,13 +123,15 @@ model RecurringInvoice {
   clientId     String
   frequency    String   // WEEKLY, BIWEEKLY, MONTHLY, QUARTERLY, YEARLY
   nextDate     DateTime
-  templateData String   // JSON string of invoice template
+  templateData String   @db.Text // JSON string of invoice template
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Freelancer-specific

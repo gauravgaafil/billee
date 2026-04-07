@@ -37,6 +37,13 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve React frontend in production
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientBuildPath));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
 app.use(errorHandler);
 
 app.listen(config.port, () => {
